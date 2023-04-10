@@ -12,7 +12,7 @@ export class ApiStack extends cdk.Stack {
     // Define the DynamoDB table
     const postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
       partitionKey: { name: 'id', type: cdkDynamodb.AttributeType.STRING },
-      tableName: 'Posts',
+      tableName: 'Posts'
     });
 
     // Define the Lambda functions
@@ -60,9 +60,11 @@ export class ApiStack extends cdk.Stack {
     const posts = api.root.addResource('posts');
     posts.addMethod('GET', new cdkApigtw.LambdaIntegration(listPostsFunction));
 
-    const post = posts.addResource('{post}');
-    post.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction));
-    post.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
+    const getPost = posts.addResource('{id}');
+    getPost.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction));
+
+    const postPost = posts.addResource('{post}');
+    postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
     
   }
 }
