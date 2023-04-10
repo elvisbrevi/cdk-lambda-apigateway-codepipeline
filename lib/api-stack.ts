@@ -10,38 +10,37 @@ export class ApiStack extends cdk.Stack {
     super(scope, id, props);
 
     // Define the DynamoDB table
-    const postsTable = new cdkDynamodb.Table(this, 'PostsTable', {
+    const postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
       partitionKey: { name: 'id', type: cdkDynamodb.AttributeType.STRING },
       tableName: 'Posts',
-      removalPolicy: cdk.RemovalPolicy.SNAPSHOT
     });
 
     // Define the Lambda functions
-    const createPostFunction = new cdkLambda.Function(this, 'CreatePostFunction', {
+    const createPostFunction = new cdkLambda.Function(this, `CreatePostFunction-${id}`, {
       functionName: 'CreatePost',
       code: cdkLambda.Code.fromAsset('lambdas/create_post'),
       handler: 'handler',
-      runtime: cdkLambda.Runtime.PYTHON_3_8,
+      runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
       },
     });
 
-    const listPostsFunction = new cdkLambda.Function(this, 'ListPostsFunction', {
+    const listPostsFunction = new cdkLambda.Function(this, `ListPostsFunction-${id}`, {
       functionName: 'ListPosts',
       code: cdkLambda.Code.fromAsset('lambdas/list_posts'),
       handler: 'handler',
-      runtime: cdkLambda.Runtime.PYTHON_3_8,
+      runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
       },
     });
 
-    const getPostFunction = new cdkLambda.Function(this, 'GetPostFunction', {
+    const getPostFunction = new cdkLambda.Function(this, `GetPostFunction-${id}`, {
       functionName: 'GetPost',
       code: cdkLambda.Code.fromAsset('lambdas/get_post'),
       handler: 'handler',
-      runtime: cdkLambda.Runtime.PYTHON_3_8,
+      runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
       }
@@ -53,7 +52,7 @@ export class ApiStack extends cdk.Stack {
     postsTable.grantReadData(getPostFunction);
 
     // Define the API Gateway
-    const api = new cdkApigtw.LambdaRestApi(this, 'myapi', {
+    const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
       handler: listPostsFunction,
       proxy: false
     });
