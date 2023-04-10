@@ -12,7 +12,8 @@ export class ApiStack extends cdk.Stack {
     // Define the DynamoDB table
     const postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
       partitionKey: { name: 'id', type: cdkDynamodb.AttributeType.STRING },
-      tableName: 'Posts'
+      tableName: 'Posts',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // Define the Lambda functions
