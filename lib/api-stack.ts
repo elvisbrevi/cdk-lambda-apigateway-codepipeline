@@ -64,7 +64,7 @@ export class ApiStack extends cdk.Stack {
     const getPost = posts.addResource('{postId}');
     getPost.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction));
 
-    const postPost = posts.addResource('{post}');
+    const postPost = posts.addResource('create');
     postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
     
   }
