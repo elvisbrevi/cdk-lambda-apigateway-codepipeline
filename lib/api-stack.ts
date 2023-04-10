@@ -26,7 +26,7 @@ export class ApiStack extends cdk.Stack {
     const createPostFunction = new cdkLambda.Function(this, `CreatePostFunction-${id}`, {
       functionName: 'CreatePost',
       code: cdkLambda.Code.fromAsset('lambdas/create_post'),
-      handler: 'handler',
+      handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
@@ -36,7 +36,7 @@ export class ApiStack extends cdk.Stack {
     const listPostsFunction = new cdkLambda.Function(this, `ListPostsFunction-${id}`, {
       functionName: 'ListPosts',
       code: cdkLambda.Code.fromAsset('lambdas/list_posts'),
-      handler: 'handler',
+      handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
@@ -46,7 +46,7 @@ export class ApiStack extends cdk.Stack {
     const getPostFunction = new cdkLambda.Function(this, `GetPostFunction-${id}`, {
       functionName: 'GetPost',
       code: cdkLambda.Code.fromAsset('lambdas/get_post'),
-      handler: 'handler',
+      handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
         POSTS_TABLE_NAME: postsTable.tableName,
