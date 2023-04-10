@@ -7,7 +7,7 @@ table_name = os.environ['POSTS_TABLE_NAME']
 table = dynamodb.Table(table_name)
 
 def handler(event, context):
-    post_id = event['pathParameters']['id']
+    post_id = event['pathParameters']['postId']
 
     response = table.get_item(Key={'id': post_id})
     item = response.get('Item', None)
