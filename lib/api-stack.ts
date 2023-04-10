@@ -65,6 +65,5 @@ export class ApiStack extends cdk.Stack {
 
     const postPost = posts.addResource('{post}');
     postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
-    
   }
 }
