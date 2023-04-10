@@ -4,6 +4,12 @@ import * as cdkDynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cdkLambda from 'aws-cdk-lib/aws-lambda';
 import * as cdkApigtw from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+
+const DOMAIN_NAME = "elvisbrevi.com";
+const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
 
 export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
@@ -52,12 +58,31 @@ export class ApiStack extends cdk.Stack {
     postsTable.grantReadData(listPostsFunction);
     postsTable.grantReadData(getPostFunction);
 
+    //Get The Hosted Zone
+    const hostedZone = route53.HostedZone.fromLookup(this, `HostedZone-${id}`, {
+      domainName: DOMAIN_NAME,
+    });
+
+    // Create the HTTPS certificate
+    const httpsCertificate = new acm.Certificate(this, `HttpsCertificate-${id}`, {
+      domainName: API_DOMAIN_NAME,
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
     // Define the API Gateway
     const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
       handler: listPostsFunction,
-      proxy: false
+      proxy: false,
+      restApiName: 'Blog API',
+      domainName: {
+        domainName: API_DOMAIN_NAME,
+        certificate: httpsCertificate,
+        securityPolicy: cdkApigtw.SecurityPolicy.TLS_1_2,
+        endpointType: cdkApigtw.EndpointType.EDGE,
+      },
     });
 
+    // Define the API Gateway resources
     const posts = api.root.addResource('posts');
     posts.addMethod('GET', new cdkApigtw.LambdaIntegration(listPostsFunction));
 
@@ -66,6 +91,13 @@ export class ApiStack extends cdk.Stack {
 
     const postPost = posts.addResource('create');
     postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
+
+    // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
+    new route53.ARecord(this, `BlogApiRecord-${id}`, {
+      recordName: API_DOMAIN_NAME, 
+      zone: hostedZone,
+      target: route53.RecordTarget.fromAlias(new route53Targets.ApiGateway(api)),
+    });
     
   }
 }
