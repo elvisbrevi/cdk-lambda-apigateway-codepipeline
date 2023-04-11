@@ -71,6 +71,11 @@ export class ApiStack extends cdk.Stack {
 
     // Define the API Gateway
     const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
+      defaultCorsPreflightOptions: {
+        allowOrigins: cdkApigtw.Cors.ALL_ORIGINS,
+        allowMethods: cdkApigtw.Cors.ALL_METHODS,
+        allowHeaders: cdkApigtw.Cors.DEFAULT_HEADERS,
+      },
       handler: listPostsFunction,
       proxy: false,
       restApiName: 'Blog API',
