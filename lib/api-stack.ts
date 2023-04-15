@@ -7,6 +7,7 @@ import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import { UserPool } from 'aws-cdk-lib/aws-cognito';
 
 const DOMAIN_NAME = "elvisbrevi.com";
 const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
@@ -82,15 +83,52 @@ export class ApiStack extends cdk.Stack {
       },
     });
 
+    // Cognito User Pool with Email Sign-in Type.
+    const userPool = new UserPool(this, `UserPool-${id}`, {
+      signInAliases: {
+        email: true
+      }
+    })
+
+    // Cognito User pool to Authorize users.
+    const authorizer = new cdkApigtw.CfnAuthorizer(this, `cfnAuth-${id}`, {
+      restApiId: api.restApiId,
+      name: 'CognitoAPIAuthorizer',
+      type: 'COGNITO_USER_POOLS',
+      identitySource: 'method.request.header.Authorization',
+      providerArns: [userPool.userPoolArn],
+    })
+
     // Define the API Gateway resources
     const posts = api.root.addResource('posts');
-    posts.addMethod('GET', new cdkApigtw.LambdaIntegration(listPostsFunction));
+    posts.addMethod('GET', new cdkApigtw.LambdaIntegration(listPostsFunction), 
+      {
+        authorizationType: cdkApigtw.AuthorizationType.COGNITO,
+        authorizer: {
+          authorizerId: authorizer.ref
+        }
+      }
+    );
 
     const getPost = posts.addResource('{postId}');
-    getPost.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction));
+    getPost.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction), 
+      {
+        authorizationType: cdkApigtw.AuthorizationType.COGNITO,
+        authorizer: {
+          authorizerId: authorizer.ref
+        }
+      }
+    );
 
     const postPost = posts.addResource('create');
-    postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction));
+    postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction), 
+      {
+        authorizationType: cdkApigtw.AuthorizationType.COGNITO,
+        authorizer: {
+          authorizerId: authorizer.ref
+        }
+      }
+    );
 
     // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
     new route53.ARecord(this, `BlogApiRecord-${id}`, {
