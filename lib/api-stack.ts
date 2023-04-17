@@ -7,13 +7,13 @@ import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
-import { UserPool } from 'aws-cdk-lib/aws-cognito';
+import { AuthStack } from './auth-stack';
 
 const DOMAIN_NAME = "elvisbrevi.com";
 const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
 
 export class ApiStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, stageName: string, authStack: AuthStack, props?: StackProps) {
     super(scope, id, props);
 
     // Define the DynamoDB table
@@ -83,20 +83,13 @@ export class ApiStack extends cdk.Stack {
       },
     });
 
-    // Cognito User Pool with Email Sign-in Type.
-    const userPool = new UserPool(this, `UserPool-${id}`, {
-      signInAliases: {
-        email: true
-      }
-    })
-
     // Cognito User pool to Authorize users.
     const authorizer = new cdkApigtw.CfnAuthorizer(this, `cfnAuth-${id}`, {
       restApiId: api.restApiId,
       name: 'CognitoAPIAuthorizer',
       type: 'COGNITO_USER_POOLS',
       identitySource: 'method.request.header.Authorization',
-      providerArns: [userPool.userPoolArn],
+      providerArns: [authStack.userPoolArn],
     })
 
     // Define the API Gateway resources
