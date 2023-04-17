@@ -122,9 +122,7 @@ export class ApiStack extends cdk.Stack {
       authSessionValidity: cdk.Duration.minutes(15),
       accessTokenValidity: cdk.Duration.minutes(15),
       idTokenValidity: cdk.Duration.minutes(15),
-      supportedIdentityProviders: [
-        UserPoolClientIdentityProvider.COGNITO,
-        UserPoolClientIdentityProvider.GOOGLE],
+      supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
       generateSecret: true,
       authFlows: {
         userPassword: true,
