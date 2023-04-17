@@ -52,7 +52,7 @@ export class AuthStack extends cdk.Stack {
         // Cognito User Pool App Client.
         userPool.addClient(`AppClient-${id}`, {
             userPoolClientName: 'apiBlogClient',
-            refreshTokenValidity: cdk.Duration.minutes(15),
+            refreshTokenValidity: cdk.Duration.hours(1),
             authSessionValidity: cdk.Duration.minutes(15),
             accessTokenValidity: cdk.Duration.minutes(15),
             idTokenValidity: cdk.Duration.minutes(15),

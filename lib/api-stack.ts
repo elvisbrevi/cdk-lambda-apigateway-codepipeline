@@ -7,18 +7,18 @@ import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
-import { UserPool } from 'aws-cdk-lib/aws-cognito';
+import { UserPool, UserPoolClientIdentityProvider } from 'aws-cdk-lib/aws-cognito';
 
 const DOMAIN_NAME = "elvisbrevi.com";
 const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
+const COGNITO_DOMAIN_NAME = `cognito.${DOMAIN_NAME}`;
 
 export class ApiStack extends cdk.Stack {
-  postsTable: cdkDynamodb.Table;
-  constructor(scope: Construct, id: string, stageName: string, userPool: UserPool, props?: StackProps) {
+  constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
     super(scope, id, props);
 
     // Define the DynamoDB table
-    this.postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
+    const postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
       partitionKey: { name: 'id', type: cdkDynamodb.AttributeType.STRING },
       tableName: 'Posts',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -31,7 +31,7 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: this.postsTable.tableName,
+        POSTS_TABLE_NAME: postsTable.tableName,
       },
     });
 
@@ -41,7 +41,7 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: this.postsTable.tableName,
+        POSTS_TABLE_NAME: postsTable.tableName,
       },
     });
 
@@ -51,14 +51,14 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: this.postsTable.tableName,
+        POSTS_TABLE_NAME: postsTable.tableName,
       }
     });
 
     // Grant permission to Lambda to access the DynamoDB table
-    this.postsTable.grantReadWriteData(createPostFunction);
-    this.postsTable.grantReadData(listPostsFunction);
-    this.postsTable.grantReadData(getPostFunction);
+    postsTable.grantReadWriteData(createPostFunction);
+    postsTable.grantReadData(listPostsFunction);
+    postsTable.grantReadData(getPostFunction);
 
     //Get The Hosted Zone
     const hostedZone = route53.HostedZone.fromLookup(this, `HostedZone-${id}`, {
@@ -89,6 +89,82 @@ export class ApiStack extends cdk.Stack {
       recordName: API_DOMAIN_NAME, 
       zone: hostedZone,
       target: route53.RecordTarget.fromAlias(new route53Targets.ApiGateway(api)),
+    });
+
+    // Cognito User Pool with Email Sign-in Type.
+    const userPool = new UserPool(this, `UserPool-${id}`, {
+      userPoolName: 'apiBlogUserPool',
+      selfSignUpEnabled: true,
+      autoVerify: {
+        email: true,
+      },
+      userInvitation: {
+        emailSubject: 'Your invitation to join the API Blog User Pool',
+        emailBody: 'Hello {username}, You have been invited to join the API Blog User Pool. Your temporary password is {####}.',
+        smsMessage: 'Your temporary password is {####}.',
+      },
+      userVerification: {
+        emailSubject: 'Your verification code for the API Blog User Pool',
+        emailBody: 'Hello {username}, Your verification code is {####}.',
+        smsMessage: 'Your verification code is {####}.',
+      },
+      signInAliases: {
+        username: true,
+        email: true,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    userPool.addResourceServer(`ResourceServer-${id}`, {
+      userPoolResourceServerName: 'apiBlogResourceServer',
+      identifier: 'apiBlogResourceServer',
+      scopes: [
+        {
+          scopeName: 'write',
+          scopeDescription: 'for POST requests',
+        },
+        {
+          scopeName: 'read',
+          scopeDescription: 'for GET requests',
+        }
+      ],
+    });
+
+    // Create the HTTPS certificate for Cognito User Pool custom domain.
+    const cognitoHttpsCertificate = new acm.Certificate(this, `CognitoHttpsCertificate-${id}`, {
+      domainName: COGNITO_DOMAIN_NAME,
+      validation: acm.CertificateValidation.fromDns(hostedZone)
+    });
+
+    // Cognito User Pool custom domain.
+    const userPollDomain = userPool.addDomain(`UserPoolDomain-${id}`, {
+      customDomain: {
+        domainName: COGNITO_DOMAIN_NAME,
+        certificate: cognitoHttpsCertificate,
+      },
+    });
+
+    // Cognito User Pool App Client.
+    userPool.addClient(`AppClient-${id}`, {
+      userPoolClientName: 'apiBlogClient',
+      refreshTokenValidity: cdk.Duration.hours(1),
+      authSessionValidity: cdk.Duration.minutes(15),
+      accessTokenValidity: cdk.Duration.minutes(15),
+      idTokenValidity: cdk.Duration.minutes(15),
+      supportedIdentityProviders: [
+        UserPoolClientIdentityProvider.COGNITO,
+        UserPoolClientIdentityProvider.GOOGLE],
+      generateSecret: true,
+      authFlows: {
+        userPassword: true,
+      }
+    });
+
+    // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
+    new route53.ARecord(this, `CognitoRecord-${id}`, {
+      recordName: COGNITO_DOMAIN_NAME, 
+      zone: hostedZone,
+      target: route53.RecordTarget.fromAlias(new route53Targets.UserPoolDomainTarget(userPollDomain))
     });
 
     // Cognito User pool to Authorize users.
