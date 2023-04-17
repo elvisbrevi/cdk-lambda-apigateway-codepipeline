@@ -98,36 +98,7 @@ export class ApiStack extends cdk.Stack {
       autoVerify: {
         email: true,
       },
-      userInvitation: {
-        emailSubject: 'Your invitation to join the API Blog User Pool',
-        emailBody: 'Hello {username}, You have been invited to join the API Blog User Pool. Your temporary password is {####}.',
-        smsMessage: 'Your temporary password is {####}.',
-      },
-      userVerification: {
-        emailSubject: 'Your verification code for the API Blog User Pool',
-        emailBody: 'Hello {username}, Your verification code is {####}.',
-        smsMessage: 'Your verification code is {####}.',
-      },
-      signInAliases: {
-        username: true,
-        email: true,
-      },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    userPool.addResourceServer(`ResourceServer-${id}`, {
-      userPoolResourceServerName: 'apiBlogResourceServer',
-      identifier: 'apiBlogResourceServer',
-      scopes: [
-        {
-          scopeName: 'write',
-          scopeDescription: 'for POST requests',
-        },
-        {
-          scopeName: 'read',
-          scopeDescription: 'for GET requests',
-        }
-      ],
     });
 
     // Create the HTTPS certificate for Cognito User Pool custom domain.
