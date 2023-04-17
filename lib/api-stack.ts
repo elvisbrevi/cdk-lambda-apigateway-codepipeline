@@ -13,11 +13,12 @@ const DOMAIN_NAME = "elvisbrevi.com";
 const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
 
 export class ApiStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
+  postsTable: cdkDynamodb.Table;
+  constructor(scope: Construct, id: string, stageName: string, userPool: UserPool, props?: StackProps) {
     super(scope, id, props);
 
     // Define the DynamoDB table
-    const postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
+    this.postsTable = new cdkDynamodb.Table(this, `PostsTable-${id}`, {
       partitionKey: { name: 'id', type: cdkDynamodb.AttributeType.STRING },
       tableName: 'Posts',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -30,7 +31,7 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: postsTable.tableName,
+        POSTS_TABLE_NAME: this.postsTable.tableName,
       },
     });
 
@@ -40,7 +41,7 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: postsTable.tableName,
+        POSTS_TABLE_NAME: this.postsTable.tableName,
       },
     });
 
@@ -50,22 +51,22 @@ export class ApiStack extends cdk.Stack {
       handler: 'app.handler',
       runtime: cdkLambda.Runtime.PYTHON_3_9,
       environment: {
-        POSTS_TABLE_NAME: postsTable.tableName,
+        POSTS_TABLE_NAME: this.postsTable.tableName,
       }
     });
 
     // Grant permission to Lambda to access the DynamoDB table
-    postsTable.grantReadWriteData(createPostFunction);
-    postsTable.grantReadData(listPostsFunction);
-    postsTable.grantReadData(getPostFunction);
+    this.postsTable.grantReadWriteData(createPostFunction);
+    this.postsTable.grantReadData(listPostsFunction);
+    this.postsTable.grantReadData(getPostFunction);
 
     //Get The Hosted Zone
     const hostedZone = route53.HostedZone.fromLookup(this, `HostedZone-${id}`, {
       domainName: DOMAIN_NAME,
     });
 
-    // Create the HTTPS certificate
-    const httpsCertificate = new acm.Certificate(this, `HttpsCertificate-${id}`, {
+    // Create the HTTPS certificate for API
+    const apiHttpsCertificate = new acm.Certificate(this, `ApiHttpsCertificate-${id}`, {
       domainName: API_DOMAIN_NAME,
       validation: acm.CertificateValidation.fromDns(hostedZone),
     });
@@ -77,18 +78,18 @@ export class ApiStack extends cdk.Stack {
       restApiName: 'Blog API',
       domainName: {
         domainName: API_DOMAIN_NAME,
-        certificate: httpsCertificate,
+        certificate: apiHttpsCertificate,
         securityPolicy: cdkApigtw.SecurityPolicy.TLS_1_2,
         endpointType: cdkApigtw.EndpointType.EDGE,
       },
     });
 
-    // Cognito User Pool with Email Sign-in Type.
-    const userPool = new UserPool(this, `UserPool-${id}`, {
-      signInAliases: {
-        email: true
-      }
-    })
+    // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
+    new route53.ARecord(this, `BlogApiRecord-${id}`, {
+      recordName: API_DOMAIN_NAME, 
+      zone: hostedZone,
+      target: route53.RecordTarget.fromAlias(new route53Targets.ApiGateway(api)),
+    });
 
     // Cognito User pool to Authorize users.
     const authorizer = new cdkApigtw.CfnAuthorizer(this, `cfnAuth-${id}`, {
@@ -130,12 +131,5 @@ export class ApiStack extends cdk.Stack {
       }
     );
 
-    // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
-    new route53.ARecord(this, `BlogApiRecord-${id}`, {
-      recordName: API_DOMAIN_NAME, 
-      zone: hostedZone,
-      target: route53.RecordTarget.fromAlias(new route53Targets.ApiGateway(api)),
-    });
-    
   }
 }
