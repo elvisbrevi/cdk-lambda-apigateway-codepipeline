@@ -1,7 +1,7 @@
 "use strict"
 import { Construct } from 'constructs';
 import { Stack, StackProps } from 'aws-cdk-lib';
-import { CodePipeline, CodePipelineProps, CodePipelineSource, ShellStep } from 'aws-cdk-lib/pipelines';
+import { CodePipeline, CodePipelineSource, ShellStep } from 'aws-cdk-lib/pipelines';
 import { ApiStage } from './stages/api-stage';
 
 export class CodePipelineStack extends Stack {

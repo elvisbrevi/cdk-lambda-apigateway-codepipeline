@@ -1,13 +1,20 @@
 import * as cdk from 'aws-cdk-lib';
 import { StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AccountRecovery, UserPool, UserPoolClient, UserPoolClientIdentityProvider } from 'aws-cdk-lib/aws-cognito';
+import { 
+    AccountRecovery, 
+    OAuthScope, 
+    ResourceServerScope, 
+    UserPool, 
+    UserPoolClient, 
+    UserPoolResourceServer } 
+    from 'aws-cdk-lib/aws-cognito';
 
 export class AuthStack extends cdk.Stack {
 
     readonly userPoolArn : string = "";
     readonly userPool: UserPool;
-
+    
     constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
         super(scope, id, props);
 
@@ -18,21 +25,47 @@ export class AuthStack extends cdk.Stack {
             signInAliases: { email: true },
             autoVerify: { email: true },
             accountRecovery: AccountRecovery.EMAIL_ONLY,
-            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+        });
+
+        const apiReadScope = new ResourceServerScope({
+            scopeName: 'blogapi.read',
+            scopeDescription: 'blogapi read scope',
+        });
+
+        const apiWriteScope = new ResourceServerScope({
+            scopeName: 'blogapi.write',
+            scopeDescription: 'blogapi write scope',
+        });
+
+        const resourceServer = new UserPoolResourceServer(this, `BlogapiResourceServer-${id}`, {
+            identifier: 'blogapi-resource-server',
+            userPool: this.userPool,
+            scopes: [apiReadScope, apiWriteScope],
         });
 
         const userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
             userPool: this.userPool,
-            userPoolClientName: `blogapi-userpool-client-${id}`,
-            authFlows: {
-                adminUserPassword: true,
-                userPassword: true,
-                custom: true,
-                userSrp: true,
+            userPoolClientName: `blogapi-client-${id}`,
+            accessTokenValidity: cdk.Duration.minutes(60),
+            generateSecret: true,
+            refreshTokenValidity: cdk.Duration.days(1),
+            enableTokenRevocation: true,
+            oAuth: {
+                flows: {
+                  clientCredentials: true,
+                },
+                scopes: [
+                    OAuthScope.resourceServer(resourceServer, apiReadScope),
+                    OAuthScope.resourceServer(resourceServer, apiWriteScope),
+                ],
             },
-            supportedIdentityProviders: [
-                UserPoolClientIdentityProvider.COGNITO,
-            ]
+        });
+
+        this.userPool.addDomain(`BlogApiDomain-${id}`, {
+            cognitoDomain: {
+                domainPrefix: 'blogapi-domain',
+            },
         });
 
         new cdk.CfnOutput(this, 'userPoolId', { value: this.userPool.userPoolId });

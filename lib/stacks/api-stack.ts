@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { StackProps } from 'aws-cdk-lib';
-import * as cdkLambda from 'aws-cdk-lib/aws-lambda';
-import * as cdkApigtw from 'aws-cdk-lib/aws-apigateway';
+import { Function, Code, Runtime } from 'aws-cdk-lib/aws-lambda';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
@@ -24,31 +24,31 @@ export class ApiStack extends cdk.Stack {
       super(scope, id, props);
 
       // Define the Lambda functions
-      const createPostFunction = new cdkLambda.Function(this, `CreatePostFunction-${id}`, {
+      const createPostFunction = new Function(this, `CreatePostFunction-${id}`, {
         functionName: 'CreatePost',
-        code: cdkLambda.Code.fromAsset('lambdas/create_post'),
+        code: Code.fromAsset('lambdas/create_post'),
         handler: 'app.handler',
-        runtime: cdkLambda.Runtime.PYTHON_3_9,
+        runtime: Runtime.PYTHON_3_9,
         environment: {
           POSTS_TABLE_NAME: dataStack.postsTable.tableName,
         },
       });
 
-      const listPostsFunction = new cdkLambda.Function(this, `ListPostsFunction-${id}`, {
+      const listPostsFunction = new Function(this, `ListPostsFunction-${id}`, {
         functionName: 'ListPosts',
-        code: cdkLambda.Code.fromAsset('lambdas/list_posts'),
+        code: Code.fromAsset('lambdas/list_posts'),
         handler: 'app.handler',
-        runtime: cdkLambda.Runtime.PYTHON_3_9,
+        runtime: Runtime.PYTHON_3_9,
         environment: {
           POSTS_TABLE_NAME: dataStack.postsTable.tableName,
         },
       });
 
-      const getPostFunction = new cdkLambda.Function(this, `GetPostFunction-${id}`, {
+      const getPostFunction = new Function(this, `GetPostFunction-${id}`, {
         functionName: 'GetPost',
-        code: cdkLambda.Code.fromAsset('lambdas/get_post'),
+        code: Code.fromAsset('lambdas/get_post'),
         handler: 'app.handler',
-        runtime: cdkLambda.Runtime.PYTHON_3_9,
+        runtime: Runtime.PYTHON_3_9,
         environment: {
           POSTS_TABLE_NAME: dataStack.postsTable.tableName,
         }
@@ -60,55 +60,69 @@ export class ApiStack extends cdk.Stack {
       dataStack.postsTable.grantReadData(getPostFunction);
 
       // Define the API Gateway
-      const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
-        handler: listPostsFunction,
-        proxy: false,
-        restApiName: 'Blog API',
+      const api = new apigateway.RestApi(this, `BlogApi-${id}`, {
+        endpointTypes: [apigateway.EndpointType.REGIONAL],
+        deploy: true,
+        deployOptions: {
+          stageName: stageName,
+        },
         domainName: {
           domainName: API_DOMAIN_NAME,
-          certificate: certificateStack.httpsCertificate,
-          securityPolicy: cdkApigtw.SecurityPolicy.TLS_1_2,
-          endpointType: cdkApigtw.EndpointType.EDGE,
+          certificate: certificateStack.apiCertificate,
+          securityPolicy: apigateway.SecurityPolicy.TLS_1_2,
+          endpointType: apigateway.EndpointType.EDGE,
         },
       });
+      // const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
+      //   handler: listPostsFunction,
+      //   proxy: false,
+      //   restApiName: 'Blog API',
+      //   domainName: {
+      //     domainName: API_DOMAIN_NAME,
+      //     certificate: certificateStack.apiCertificate,
+      //     securityPolicy: cdkApigtw.SecurityPolicy.TLS_1_2,
+      //     endpointType: cdkApigtw.EndpointType.EDGE,
+      //   },
+      // });
 
       // Cognito User pool to Authorize users.
-      const authorizer = new cdkApigtw.CfnAuthorizer(this, `cfnAuth-${id}`, {
-        restApiId: api.restApiId,
-        name: 'CognitoAPIAuthorizer',
-        type: 'COGNITO_USER_POOLS',
-        identitySource: 'method.request.header.Authorization',
-        providerArns: [authStack.userPool.userPoolArn],
-      })
+      const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, `BlogApiAuthorizer-${id}`, {
+        authorizerName: 'CognitoAPIAuthorizer',
+        cognitoUserPools: [authStack.userPool],
+      });
+      // const authorizer = new cdkApigtw.CfnAuthorizer(this, `BlogApiAuthorizer-${id}`, {
+      //   restApiId: api.restApiId,
+      //   name: 'CognitoAPIAuthorizer',
+      //   type: 'COGNITO_USER_POOLS',
+      //   identitySource: 'method.request.header.Authorization',
+      //   providerArns: [authStack.userPool.userPoolArn],
+      // });
 
       // Define the API Gateway resources
       const posts = api.root.addResource('posts');
-      posts.addMethod('GET', new cdkApigtw.LambdaIntegration(listPostsFunction), 
+      posts.addMethod('GET', new apigateway.LambdaIntegration(listPostsFunction), 
         {
-          authorizationType: cdkApigtw.AuthorizationType.COGNITO,
-          authorizer: {
-            authorizerId: authorizer.ref
-          }
+          authorizer: authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+          authorizationScopes: ['blogapi-resource-server/blogapi.read'],
         }
       );
 
       const getPost = posts.addResource('{postId}');
-      getPost.addMethod('GET', new cdkApigtw.LambdaIntegration(getPostFunction), 
+      getPost.addMethod('GET', new apigateway.LambdaIntegration(getPostFunction), 
         {
-          authorizationType: cdkApigtw.AuthorizationType.COGNITO,
-          authorizer: {
-            authorizerId: authorizer.ref
-          }
+          authorizer: authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+          authorizationScopes: ['blogapi-resource-server/blogapi.read'],
         }
       );
 
       const postPost = posts.addResource('create');
-      postPost.addMethod('POST', new cdkApigtw.LambdaIntegration(createPostFunction), 
+      postPost.addMethod('POST', new apigateway.LambdaIntegration(createPostFunction), 
         {
-          authorizationType: cdkApigtw.AuthorizationType.COGNITO,
-          authorizer: {
-            authorizerId: authorizer.ref
-          }
+          authorizer: authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+          authorizationScopes: ['blogapi-resource-server/blogapi.write'],
         }
       );
 

@@ -9,7 +9,7 @@ const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
 
 export class CertificateStack extends cdk.Stack {
 
-    readonly httpsCertificate: Certificate;
+    readonly apiCertificate: Certificate;
     readonly hostedZone: IHostedZone;
 
     constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
@@ -20,8 +20,8 @@ export class CertificateStack extends cdk.Stack {
             domainName: DOMAIN_NAME,
         });
 
-        // Create the HTTPS certificate
-        this.httpsCertificate = new Certificate(this, `HttpsCertificate-${id}`, {
+        // Create the HTTPS certificates
+        this.apiCertificate = new Certificate(this, `apiCertificate-${id}`, {
             domainName: API_DOMAIN_NAME,
             validation: CertificateValidation.fromDns(this.hostedZone),
         });
