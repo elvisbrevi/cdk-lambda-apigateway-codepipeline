@@ -73,30 +73,12 @@ export class ApiStack extends cdk.Stack {
           endpointType: apigateway.EndpointType.EDGE,
         },
       });
-      // const api = new cdkApigtw.LambdaRestApi(this, `BlogApi-${id}`, {
-      //   handler: listPostsFunction,
-      //   proxy: false,
-      //   restApiName: 'Blog API',
-      //   domainName: {
-      //     domainName: API_DOMAIN_NAME,
-      //     certificate: certificateStack.apiCertificate,
-      //     securityPolicy: cdkApigtw.SecurityPolicy.TLS_1_2,
-      //     endpointType: cdkApigtw.EndpointType.EDGE,
-      //   },
-      // });
 
       // Cognito User pool to Authorize users.
       const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, `BlogApiAuthorizer-${id}`, {
         authorizerName: 'CognitoAPIAuthorizer',
         cognitoUserPools: [authStack.userPool],
       });
-      // const authorizer = new cdkApigtw.CfnAuthorizer(this, `BlogApiAuthorizer-${id}`, {
-      //   restApiId: api.restApiId,
-      //   name: 'CognitoAPIAuthorizer',
-      //   type: 'COGNITO_USER_POOLS',
-      //   identitySource: 'method.request.header.Authorization',
-      //   providerArns: [authStack.userPool.userPoolArn],
-      // });
 
       // Define the API Gateway resources
       const posts = api.root.addResource('posts');
