@@ -6,7 +6,6 @@ import os
 
 user_pool_id = os.environ['USER_POOL_ID']
 client_id = os.environ['USER_POOL_CLIENT_ID']
-client_secret = os.environ['USER_POOL_CLIENT_SECRET']
 
 def get_hash(username, app_client_id, key):
     message = bytes(username+app_client_id,'utf-8')
@@ -23,6 +22,7 @@ def handler(event, context):
         aws_access_key_id = ssm_client.get_parameter(Name='access_key_id')['Parameter']['Value']
         aws_secret_access_key = ssm_client.get_parameter(Name='secret_access_key')['Parameter']['Value']
         aws_region = 'us-east-1'
+        client_secret = ssm_client.get_parameter(Name='client_secret')['Parameter']['Value']
         
         # Crear una instancia del cliente Cognito
         cognito_client = boto3.client('cognito-idp',
