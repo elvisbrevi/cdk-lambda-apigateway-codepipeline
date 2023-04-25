@@ -54,6 +54,18 @@ export class ApiStack extends cdk.Stack {
         }
       });
 
+      const authUserFunction = new Function(this, `AuthUserFunction-${id}`, {
+        functionName: 'AuthUser',
+        code: Code.fromAsset('lambdas/auth_user'),
+        handler: 'app.handler',
+        runtime: Runtime.PYTHON_3_9,
+        environment: {
+          USER_POOL_ID: authStack.userPool.userPoolId,
+          USER_POOL_CLIENT_ID: authStack.userPoolClient.userPoolClientId,
+          USER_POOL_CLIENT_SECRET: authStack.userPoolClient.userPoolClientSecret.toString(),
+        }
+      });
+
       // Grant permission to Lambda to access the DynamoDB table
       dataStack.postsTable.grantReadWriteData(createPostFunction);
       dataStack.postsTable.grantReadData(listPostsFunction);
@@ -107,6 +119,9 @@ export class ApiStack extends cdk.Stack {
           authorizationScopes: ['blogapi-resource-server/blogapi.write'],
         }
       );
+
+      const authUser = posts.addResource('authUser');
+      authUser.addMethod('GET', new apigateway.LambdaIntegration(authUserFunction));
 
       // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
       new route53.ARecord(this, `BlogApiRecord-${id}`, {

@@ -14,6 +14,7 @@ export class AuthStack extends cdk.Stack {
 
     readonly userPoolArn : string = "";
     readonly userPool: UserPool;
+    readonly userPoolClient: UserPoolClient;
     
     constructor(scope: Construct, id: string, stageName: string, props?: StackProps) {
         super(scope, id, props);
@@ -44,7 +45,7 @@ export class AuthStack extends cdk.Stack {
             scopes: [apiReadScope, apiWriteScope],
         });
 
-        const userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
+        this.userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
             userPool: this.userPool,
             userPoolClientName: `blogapi-client-${id}`,
             accessTokenValidity: cdk.Duration.minutes(60),
@@ -69,7 +70,7 @@ export class AuthStack extends cdk.Stack {
         });
 
         new cdk.CfnOutput(this, 'userPoolId', { value: this.userPool.userPoolId });
-        new cdk.CfnOutput(this, 'userPoolClientId', { value: userPoolClient.userPoolClientId });
+        new cdk.CfnOutput(this, 'userPoolClientId', { value: this.userPoolClient.userPoolClientId });
 
     }    
 }
