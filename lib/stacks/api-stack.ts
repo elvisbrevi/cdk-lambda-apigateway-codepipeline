@@ -61,8 +61,7 @@ export class ApiStack extends cdk.Stack {
         runtime: Runtime.PYTHON_3_9,
         environment: {
           USER_POOL_ID: authStack.userPool.userPoolId,
-          USER_POOL_CLIENT_ID: authStack.userPoolClient.userPoolClientId,
-          USER_POOL_CLIENT_SECRET: authStack.userPoolClient.userPoolClientSecret.toString(),
+          USER_POOL_CLIENT_ID: authStack.userPoolClient.userPoolClientId
         }
       });
 
