@@ -8,11 +8,11 @@ table_name = os.environ['POSTS_TABLE_NAME']
 table = dynamodb.Table(table_name)
 
 def handler(event, context):
-    data = json.loads(event['body'])
+    body = json.loads(event['body'])
     post_id = str(uuid.uuid4())
-    title = data['title']
-    content = data['content']
-    date = data['date']
+    title = body['title']
+    content = body['content']
+    date = body['date']
 
     item = {
         'id': post_id,
