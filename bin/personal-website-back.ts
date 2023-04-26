@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { CodePipelineStack } from '../lib/codepipeline-stack';
+import { CodePipelineStack } from '../lib/stacks/codepipeline-stack';
 
 const env = { 
   account: process.env.CDK_DEFAULT_ACCOUNT, 
