@@ -8,6 +8,7 @@ import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import { AuthStack } from './auth-stack';
 import { DataStack } from './data-stack';
 import { CertificateStack } from './certificateStack';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 const DOMAIN_NAME = "elvisbrevi.com";
 const API_DOMAIN_NAME = `blogapi.${DOMAIN_NAME}`;
@@ -22,6 +23,8 @@ export class ApiStack extends cdk.Stack {
     props?: StackProps) {
 
       super(scope, id, props);
+      const region = props?.env?.region;
+      const account = props?.env?.account;
 
       // Define the Lambda functions
       const createPostFunction = new Function(this, `CreatePostFunction-${id}`, {
@@ -54,6 +57,14 @@ export class ApiStack extends cdk.Stack {
         }
       });
 
+      const ssmReadPolicy = new iam.PolicyStatement({
+        actions: ["ssm:GetParameter",
+                  "ssm:GetParameters",
+                  "ssm:GetParametersByPath"],
+        resources: [`arn:aws:ssm:${region}:${account}:parameter/*`],
+        effect: iam.Effect.ALLOW
+      });
+
       const authUserFunction = new Function(this, `AuthUserFunction-${id}`, {
         functionName: 'AuthUser',
         code: Code.fromAsset('lambdas/auth_user'),
@@ -62,7 +73,8 @@ export class ApiStack extends cdk.Stack {
         environment: {
           USER_POOL_ID: authStack.userPool.userPoolId,
           USER_POOL_CLIENT_ID: authStack.userPoolClient.userPoolClientId
-        }
+        },
+        initialPolicy: [ssmReadPolicy]
       });
 
       // Grant permission to Lambda to access the DynamoDB table
@@ -119,8 +131,8 @@ export class ApiStack extends cdk.Stack {
         }
       );
 
-      const authUser = posts.addResource('authUser');
-      authUser.addMethod('GET', new apigateway.LambdaIntegration(authUserFunction));
+      const authUser = api.root.addResource('authUser');
+      authUser.addMethod('POST', new apigateway.LambdaIntegration(authUserFunction));
 
       // Add DNS records to the hosted zone to redirect from the domain name to the CloudFront distribution
       new route53.ARecord(this, `BlogApiRecord-${id}`, {

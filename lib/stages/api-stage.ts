@@ -10,11 +10,13 @@ export class ApiStage extends Stage {
     constructor(scope: Construct, stageName: string, props?: StackProps) {
         super(scope, stageName, props);
 
+        // Common props for all stacks
         const commonProps : StackProps = {
             tags: {
                 'Project': 'Blog',
                 'Stage': stageName,
-            }
+            },
+            env: props?.env
         };
         
         const certificateStack = new CertificateStack(this, 'blog-certificate', stageName, commonProps);
