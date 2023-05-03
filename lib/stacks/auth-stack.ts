@@ -52,9 +52,12 @@ export class AuthStack extends cdk.Stack {
             generateSecret: true,
             refreshTokenValidity: cdk.Duration.days(1),
             enableTokenRevocation: true,
+            authFlows: {
+                adminUserPassword: true,
+            },
             oAuth: {
                 flows: {
-                  clientCredentials: true,
+                  clientCredentials: true
                 },
                 scopes: [
                     OAuthScope.resourceServer(resourceServer, apiReadScope),
