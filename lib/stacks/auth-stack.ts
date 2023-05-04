@@ -29,22 +29,12 @@ export class AuthStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
-        const apiReadScope = new ResourceServerScope({
-            scopeName: 'blogapi.read',
-            scopeDescription: 'blogapi read scope',
+        const domain = this.userPool.addDomain(`BlogApiDomain-${id}`, {
+            cognitoDomain: {
+                domainPrefix: 'blogapi-domain',
+            },
         });
-
-        const apiWriteScope = new ResourceServerScope({
-            scopeName: 'blogapi.write',
-            scopeDescription: 'blogapi write scope',
-        });
-
-        const resourceServer = new UserPoolResourceServer(this, `BlogapiResourceServer-${id}`, {
-            identifier: 'blogapi-resource-server',
-            userPool: this.userPool,
-            scopes: [apiReadScope, apiWriteScope],
-        });
-
+        
         this.userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
             userPool: this.userPool,
             userPoolClientName: `blogapi-client-${id}`,
@@ -56,19 +46,10 @@ export class AuthStack extends cdk.Stack {
                 adminUserPassword: true,
             },
             oAuth: {
+                callbackUrls: [`http://localhost:5173/callback`, `${domain.baseUrl()}/callback`],
                 flows: {
-                  clientCredentials: true
-                },
-                scopes: [
-                    OAuthScope.resourceServer(resourceServer, apiReadScope),
-                    OAuthScope.resourceServer(resourceServer, apiWriteScope),
-                ],
-            },
-        });
-
-        this.userPool.addDomain(`BlogApiDomain-${id}`, {
-            cognitoDomain: {
-                domainPrefix: 'blogapi-domain',
+                    authorizationCodeGrant: true,
+                }
             },
         });
 

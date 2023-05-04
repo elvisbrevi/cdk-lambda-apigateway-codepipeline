@@ -139,8 +139,7 @@ export class ApiStack extends cdk.Stack {
       posts.addMethod('GET', new apigateway.LambdaIntegration(listPostsFunction), 
         {
           authorizer: authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-          authorizationScopes: ['blogapi-resource-server/blogapi.read'],
+          authorizationType: apigateway.AuthorizationType.COGNITO
         }
       );
 
@@ -148,8 +147,7 @@ export class ApiStack extends cdk.Stack {
       getPost.addMethod('GET', new apigateway.LambdaIntegration(getPostFunction), 
         {
           authorizer: authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-          authorizationScopes: ['blogapi-resource-server/blogapi.read'],
+          authorizationType: apigateway.AuthorizationType.COGNITO
         }
       );
 
@@ -157,8 +155,7 @@ export class ApiStack extends cdk.Stack {
       postPost.addMethod('POST', new apigateway.LambdaIntegration(createPostFunction), 
         {
           authorizer: authorizer,
-          authorizationType: apigateway.AuthorizationType.COGNITO,
-          authorizationScopes: ['blogapi-resource-server/blogapi.write'],
+          authorizationType: apigateway.AuthorizationType.COGNITO
         }
       );
 
