@@ -1,9 +1,14 @@
 import * as cdk from 'aws-cdk-lib';
 import { StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AccountRecovery, UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
-
-const DOMAIN_NAME = "elvisbrevi.com";
+import { 
+    AccountRecovery, 
+    OAuthScope, 
+    ResourceServerScope, 
+    UserPool, 
+    UserPoolClient, 
+    UserPoolResourceServer } 
+    from 'aws-cdk-lib/aws-cognito';
 
 export class AuthStack extends cdk.Stack {
 
@@ -24,12 +29,22 @@ export class AuthStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
-        this.userPool.addDomain(`BlogApiDomain-${id}`, {
-            cognitoDomain: {
-                domainPrefix: 'blogapi-domain',
-            },
+        const apiReadScope = new ResourceServerScope({
+            scopeName: 'blogapi.read',
+            scopeDescription: 'blogapi read scope',
         });
-        
+
+        const apiWriteScope = new ResourceServerScope({
+            scopeName: 'blogapi.write',
+            scopeDescription: 'blogapi write scope',
+        });
+
+        const resourceServer = new UserPoolResourceServer(this, `BlogapiResourceServer-${id}`, {
+            identifier: 'blogapi-resource-server',
+            userPool: this.userPool,
+            scopes: [apiReadScope, apiWriteScope],
+        });
+
         this.userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
             userPool: this.userPool,
             userPoolClientName: `blogapi-client-${id}`,
@@ -41,13 +56,19 @@ export class AuthStack extends cdk.Stack {
                 adminUserPassword: true,
             },
             oAuth: {
-                callbackUrls: [
-                    `http://localhost:5173/editor`, 
-                    `https://${DOMAIN_NAME}/editor`
-                ],
                 flows: {
-                    authorizationCodeGrant: true,
-                }
+                  clientCredentials: true,
+                },
+                scopes: [
+                    OAuthScope.resourceServer(resourceServer, apiReadScope),
+                    OAuthScope.resourceServer(resourceServer, apiWriteScope),
+                ],
+            },
+        });
+
+        this.userPool.addDomain(`BlogApiDomain-${id}`, {
+            cognitoDomain: {
+                domainPrefix: 'blogapi-domain',
             },
         });
 
