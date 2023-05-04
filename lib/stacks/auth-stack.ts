@@ -1,14 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
 import { StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { 
-    AccountRecovery, 
-    OAuthScope, 
-    ResourceServerScope, 
-    UserPool, 
-    UserPoolClient, 
-    UserPoolResourceServer } 
-    from 'aws-cdk-lib/aws-cognito';
+import { AccountRecovery, UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
+
+const DOMAIN_NAME = "elvisbrevi.com";
 
 export class AuthStack extends cdk.Stack {
 
@@ -29,7 +24,7 @@ export class AuthStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
-        const domain = this.userPool.addDomain(`BlogApiDomain-${id}`, {
+        this.userPool.addDomain(`BlogApiDomain-${id}`, {
             cognitoDomain: {
                 domainPrefix: 'blogapi-domain',
             },
@@ -46,7 +41,10 @@ export class AuthStack extends cdk.Stack {
                 adminUserPassword: true,
             },
             oAuth: {
-                callbackUrls: [`http://localhost:5173/callback`, `${domain.baseUrl()}/callback`],
+                callbackUrls: [
+                    `http://localhost:5173/editor`, 
+                    `https://${DOMAIN_NAME}/editor`
+                ],
                 flows: {
                     authorizationCodeGrant: true,
                 }
