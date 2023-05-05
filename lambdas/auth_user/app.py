@@ -48,5 +48,10 @@ def handler(event, context):
     # Devolver la respuesta de autenticación si la autenticación es exitosa
     return {
         'statusCode': 200,
+        'headers': {
+            "Access-Control-Allow-Headers" : "Content-Type",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST"
+        },
         'body': json.dumps(auth_response)
     }
