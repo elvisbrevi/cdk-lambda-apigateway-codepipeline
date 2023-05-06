@@ -48,9 +48,10 @@ export class AuthStack extends cdk.Stack {
         this.userPoolClient = new UserPoolClient(this, `UserPoolClient-${id}`, {
             userPool: this.userPool,
             userPoolClientName: `blogapi-client-${id}`,
-            accessTokenValidity: cdk.Duration.minutes(60),
+            accessTokenValidity: cdk.Duration.minutes(5),
             generateSecret: true,
-            refreshTokenValidity: cdk.Duration.days(1),
+            refreshTokenValidity: cdk.Duration.minutes(60),
+            idTokenValidity: cdk.Duration.minutes(5),
             enableTokenRevocation: true,
             authFlows: {
                 adminUserPassword: true,
