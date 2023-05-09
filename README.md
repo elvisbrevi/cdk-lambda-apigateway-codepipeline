@@ -1,8 +1,8 @@
-# Welcome to your CDK TypeScript project
+# CDK TypeScript Project with AWS API Gateway, Lambda, DynamoDB, and Cognito
 
-This is a blank project for CDK development with TypeScript.
+Welcome to your CDK TypeScript project! This is a blank project for CDK development with TypeScript that enables you to deploy AWS infrastructure in a programmable way.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+This project includes an API Gateway that communicates with Lambda functions written in Python. The Lambda functions store data in DynamoDB, and authentication and authorization are handled by Cognito.
 
 ## Useful commands
 
