@@ -1,4 +1,4 @@
-# CDK TypeScript Project with AWS API Gateway, Lambda, DynamoDB, and Cognito
+# CDK TypeScript Project with AWS API Gateway, Lambda, DynamoDB, Cognito, and CodePipeline
 
 Welcome to your CDK TypeScript project! This is a blank project for CDK development with TypeScript that enables you to deploy AWS infrastructure in a programmable way.
 
@@ -21,5 +21,13 @@ This project creates the following AWS infrastructure:
 * DynamoDB: AWS service that provides a NoSQL database that can store and retrieve any amount of data.
 * Cognito: AWS service that provides authentication, authorization, and user management for web and mobile apps.
 
+## Deployment
+This project includes automatic deployment with CodePipeline. CodePipeline is a continuous delivery service that automates the building, testing, and deployment of code changes. The deployment process includes the following steps:
+
+* Code is pushed to the repository.
+* CodePipeline detects the changes and triggers a build.
+* AWS CodeBuild builds the application and creates a deployment package.
+* The CloudFormation stack is updated, and the changes are deployed to the AWS infrastructure.
+
 ## Conclusion
-This project is a great starting point for building serverless applications with AWS. With the help of CDK, you can deploy and manage your infrastructure programmatically, which makes the development and deployment process faster and more efficient.
+This project serves as an excellent starting point for developing AWS infrastructure using the CDK in TypeScript. It showcases how we can easily create an API Gateway that communicates with Lambda functions, with data being saved in DynamoDB and authorization through Cognito. The deployment process is streamlined with automatic deployment through CodePipeline, making it easy to manage changes and deploy infrastructure updates.
